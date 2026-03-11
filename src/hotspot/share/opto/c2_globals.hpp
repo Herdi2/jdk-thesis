@@ -435,6 +435,10 @@
           "Print ideal graph to XML file / network interface. "             \
           "By default attempts to connect to the visualizer on a socket.")  \
                                                                             \
+  develop(bool, PrintFloatBits, false,                                      \
+          "Print floating points and doubles as their bit representation."  \
+          "Off by default, used for translation validation.")               \
+                                                                            \
   develop(intx, PrintIdealGraphLevel, 0,                                    \
           "Level of detail of the ideal graph printout. "                   \
           "System-wide value, -1=printing is disabled, "                    \
