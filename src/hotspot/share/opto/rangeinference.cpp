@@ -23,6 +23,7 @@
  */
 
 #include "opto/rangeinference.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/type.hpp"
 #include "utilities/intn_t.hpp"
 
@@ -884,14 +885,16 @@ static const char* int_name_near(T origin, const char* xname, char* buf, size_t 
 }
 
 const char* TypeIntHelper::intname(char* buf, size_t buf_size, jint n) {
-  const char* str = int_name_near<jint>(max_jint, "maxint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+  if (!PrintRealMinMax) {
+    const char* str = int_name_near<jint>(max_jint, "maxint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<jint>(min_jint, "minint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
+    str = int_name_near<jint>(min_jint, "minint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
   }
 
   os::snprintf_checked(buf, buf_size, INT32_FORMAT, n);
@@ -899,14 +902,16 @@ const char* TypeIntHelper::intname(char* buf, size_t buf_size, jint n) {
 }
 
 const char* TypeIntHelper::uintname(char* buf, size_t buf_size, juint n) {
-  const char* str = int_name_near<juint>(max_juint, "maxuint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+  if (!PrintRealMinMax) {
+    const char* str = int_name_near<juint>(max_juint, "maxuint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<juint>(max_jint, "maxint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
+    str = int_name_near<juint>(max_jint, "maxint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
   }
 
   os::snprintf_checked(buf, buf_size, UINT32_FORMAT"u", n);
@@ -914,29 +919,31 @@ const char* TypeIntHelper::uintname(char* buf, size_t buf_size, juint n) {
 }
 
 const char* TypeIntHelper::longname(char* buf, size_t buf_size, jlong n) {
-  const char* str = int_name_near<jlong>(max_jlong, "maxlong", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+  if (!PrintRealMinMax) {
+    const char* str = int_name_near<jlong>(max_jlong, "maxlong", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<jlong>(min_jlong, "minlong", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+    str = int_name_near<jlong>(min_jlong, "minlong", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<jlong>(max_juint, "maxuint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+    str = int_name_near<jlong>(max_juint, "maxuint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<jlong>(max_jint, "maxint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+    str = int_name_near<jlong>(max_jint, "maxint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<jlong>(min_jint, "minint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
+    str = int_name_near<jlong>(min_jint, "minint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
   }
 
   os::snprintf_checked(buf, buf_size, JLONG_FORMAT, n);
@@ -944,24 +951,26 @@ const char* TypeIntHelper::longname(char* buf, size_t buf_size, jlong n) {
 }
 
 const char* TypeIntHelper::ulongname(char* buf, size_t buf_size, julong n) {
-  const char* str = int_name_near<julong>(max_julong, "maxulong", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+  if (!PrintRealMinMax) {
+    const char* str = int_name_near<julong>(max_julong, "maxulong", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<julong>(max_jlong, "maxlong", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+    str = int_name_near<julong>(max_jlong, "maxlong", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<julong>(max_juint, "maxuint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
-  }
+    str = int_name_near<julong>(max_juint, "maxuint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
 
-  str = int_name_near<julong>(max_jint, "maxint", buf, buf_size, n);
-  if (str != nullptr) {
-    return str;
+    str = int_name_near<julong>(max_jint, "maxint", buf, buf_size, n);
+    if (str != nullptr) {
+      return str;
+    }
   }
 
   os::snprintf_checked(buf, buf_size, JULONG_FORMAT"u", n);

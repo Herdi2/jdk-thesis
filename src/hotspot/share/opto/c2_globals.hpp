@@ -439,6 +439,14 @@
           "Print floating points and doubles as their bit representation."  \
           "Off by default, used for translation validation.")               \
                                                                             \
+  develop(bool, DelayArithmeticOpts, false,                                 \
+          "Delay arithmetic optimizations to after parsing."                \
+          "Off by default, used for translation validation.")               \
+                                                                            \
+  develop(bool, PrintRealMinMax, false,                                     \
+          "Print numbers instead of min/max for constant values."           \
+          "Off by default, used for translation validation.")               \
+                                                                            \
   develop(intx, PrintIdealGraphLevel, 0,                                    \
           "Level of detail of the ideal graph printout. "                   \
           "System-wide value, -1=printing is disabled, "                    \

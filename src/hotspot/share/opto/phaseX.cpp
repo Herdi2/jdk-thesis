@@ -28,6 +28,7 @@
 #include "memory/resourceArea.hpp"
 #include "opto/addnode.hpp"
 #include "opto/block.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/callnode.hpp"
 #include "opto/castnode.hpp"
 #include "opto/cfgnode.hpp"
@@ -681,9 +682,51 @@ Node* PhaseGVN::apply_ideal(Node* k, bool can_reshape) {
 Node* PhaseGVN::transform(Node* n) {
   NOT_PRODUCT( set_transforms(); )
 
-  // Apply the Ideal call in a loop until it no longer applies
+  // Delay arithmetic optimizations until after parsing
+  // if DelayArithmeticOpts is set.
+  bool skip_opt = false;
+  auto op = n->Opcode();
+  Opcodes ops[] =
+    {
+      Op_LShiftL, Op_LShiftI,
+
+      Op_RShiftL, Op_RShiftI,
+
+      Op_AndI, Op_AndL,
+
+      Op_OrI, Op_OrL,
+
+      Op_LShiftI, Op_LShiftL,
+
+      Op_NegI, Op_NegL, Op_NegF, Op_NegD,
+
+      Op_AddI, Op_AddL, Op_AddF, Op_AddD,
+
+      Op_SubI, Op_SubL, Op_SubF, Op_SubD,
+
+      Op_DivI, Op_DivL, Op_DivF, Op_DivD,
+
+      Op_MulI, Op_MulL, Op_MulF, Op_MulD,
+
+      Op_SubI, Op_SubL, Op_SubF, Op_SubD
+    };
+
+
   Node* k = n;
-  Node* i = apply_ideal(k, /*can_reshape=*/false);
+  if (DelayArithmeticOpts) {
+    for (auto o : ops) {
+      if (op == o) {
+        record_for_igvn(n);
+        skip_opt = true;
+        break;
+      }
+    }
+  }
+  Node* i = nullptr;
+  if (!skip_opt) {
+    // Apply the Ideal call in a loop until it no longer applies
+    apply_ideal(k, /*can_reshape=*/false);
+  }
   NOT_PRODUCT(uint loop_count = 1;)
   while (i != nullptr) {
     assert(i->_idx >= k->_idx, "Idealize should return new nodes, use Identity to return old nodes" );
@@ -705,7 +748,7 @@ Node* PhaseGVN::transform(Node* n) {
   // for this Node, and 'Value' is non-local (and therefore expensive) I'll
   // cache Value.  Later requests for the local phase->type of this Node can
   // use the cached Value instead of suffering with 'bottom_type'.
-  const Type* t = k->Value(this); // Get runtime Value set
+  const Type* t = skip_opt ? k->bottom_type() : k->Value(this); // Get runtime Value set
   assert(t != nullptr, "value sanity");
   if (type_or_null(k) != t) {
 #ifndef PRODUCT
@@ -727,7 +770,7 @@ Node* PhaseGVN::transform(Node* n) {
 
   // Now check for Identities
   i = k->Identity(this);        // Look for a nearby replacement
-  if (i != k) {                 // Found? Return replacement!
+  if (!skip_opt && i != k) {                 // Found? Return replacement!
     NOT_PRODUCT(set_progress();)
     return i;
   }
