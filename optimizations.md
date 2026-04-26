@@ -63,9 +63,52 @@ ReturnNode :: Ideal
 ### memnode.cpp
 LoadNode :: Ideal
     MemNode :: Ideal_common
-        *
+        * No explicit/interesting optimizations?
+    MemNode :: optimize_memory_chain
+        MemNode :: optimize_simple_memory_chain
+            * Optimizations seem to focus on Calls, Allocations and Initialization etc. not related to pure memory stores.
+        * Some Phi optimizations I can't wrap my head around
+
+StoreNode :: Ideal
+    MemNode :: Ideal_common
+        * Same as LoadNode
+    back_to_back_stores (unnamed)
+        * Folds back-to-back stores to the same address (presumably same instance too)
+    hoist_store (unnamed)
+        * Related to initialization, not relevant to us
+    fold_cast (unnamed)
+        * Not sure about reinterpret casts
+    merge_primitive_stores (unnamed)
+        * Irrelevant, we do not touch primitive memory
+
+StoreNode :: Identity
+    * Removes redundant stores
+    * Store(m, p, Load(m, p)) changes to m.
+    * Store(, p, x) -> Store(m, p, x) changes to Store(m, p, x).
+
+
+# Preliminary Bugs to examine
+## Control flow
+* Bug 1: Incorrect if-guard subsuming (if-clause incorrectly marked as dead due to dominating if), ifnode.cpp#1690
+* Bug 2: Incorrect canonicalization of an if-guard, ifnode.cpp#1872
+* Bug 3: Incorrect if-node equality leading to incorrect reuse of if nodes (?), ifnode.cpp#1513
+* Bug 4: Incorrect Phi-node elimination, due to assuming it only has one valid input, cfgnode.cpp#2196
+* Bug 5: Something with diamond phi pattern? (CMove?)
+* Bug 6: Incorrect Rangecheck CMove application (?), ifnode.cpp#1928
+
+
+## Memory
+* Bug 1: Back-to-back store folding on different instances (f1.x = 10; f2.x = 11; treated as f1.x = 10; f1.x = 11 => f1.x = 11), memnode.cpp#699
+* Bug 2: Reusing load nodes from different instances (e.g. f1.x + f2.x treated as f1.x + f1.x), memnode.cpp#1959
+* Bug 3: Removing stores from data flow (e.g. f1.x = 20; return f2.x treated as f1.x = 20; return f1.x => return 20), memnode.cpp#3563
+Can potentially include memory bugs that affect control flow:
+* Bug 4: Incorrect if-guard subsuming based on aliasing (if (f1.x > 0) { if (f2.x < 0) { ... } }, second if-clause incorrectly marked as dead)
+* Bug 5: Incorrect phi-node elimination due to assuming it has one valid input (Once again, incorrect aliasing in the guards)
+
 
 
 Points of interest:
 * PhaseGVN::transform(Node* n) where we delay arithmetic optimizations is supposed to optimize the given node to a
   semantically equivalent node that computes the results faster/cheaper.
+* `x > 0 ? f1.x + 10 : f1.x + 11` will not use the same AddP for the loads, may lead to false-positives
+* Doesn't memnode.cpp#711 confirm that a memnode cannot take top?
