@@ -90,14 +90,31 @@ StoreNode :: Identity
 # Preliminary Bugs to examine
 ## Control flow
 * Bug 1: Incorrect if-guard subsuming (if-clause incorrectly marked as dead due to dominating if), ifnode.cpp#1690
-* Bug 2: Incorrect canonicalization of an if-guard, ifnode.cpp#1872
-* Bug 3: Incorrect if-node equality leading to incorrect reuse of if nodes (?), ifnode.cpp#1513
+    * Git blame history uninteresting, written in one go
+    * Seems to not have any tests?
+    * Bugs: Change values in `short_circuit_map`
+* Bug 2: Incorrect canonicalization of an if-guard, ifnode.cpp#1872 `IfNode::idealize_test`
+    * Git blame history uninteresting, written in one go, minor updates with range check
+    * Seems to have no tests as well >:|
+    * Bugs: Canonicalize without switching IfTrue/IfFalse branch
+* Bug 3: IfNode::fold_compares, fold 2 CmpI into one CmpU
+    * Git blame 197ecf9bc10a bug: x <= 0 || x > 0 wrongly folded as (x-1) >u -1
+    * Corresponding test to use, found in `TestBadFoldCompare.java`
+    * Bugs: Reintroduce JDK-8346420
+* Bug 4: Incorrect if-node equality leading to incorrect reuse of if nodes (?), ifnode.cpp#1513
+    * Git blame found JDK-8347365, however related to div commoning
+    * Functions of interest: `search_identical` and `dominated_by`
+    * (dom->Opcode() != op ||  // Not same opcode?
+         !same_condition(dom, igvn) ||  // Not same input 1?
+         prev_dom->in(0) != dom)
+    * Bugs: Change above condition to introduce bug, most interesting might be dominator
 * Bug 4: Incorrect Phi-node elimination, due to assuming it only has one valid input, cfgnode.cpp#2196
 * Bug 5: Something with diamond phi pattern? (CMove?)
 * Bug 6: Incorrect Rangecheck CMove application (?), ifnode.cpp#1928
 
 
 ## Memory
+** More bugs not relying on aliasing
 * Bug 1: Back-to-back store folding on different instances (f1.x = 10; f2.x = 11; treated as f1.x = 10; f1.x = 11 => f1.x = 11), memnode.cpp#699
 * Bug 2: Reusing load nodes from different instances (e.g. f1.x + f2.x treated as f1.x + f1.x), memnode.cpp#1959
 * Bug 3: Removing stores from data flow (e.g. f1.x = 20; return f2.x treated as f1.x = 20; return f1.x => return 20), memnode.cpp#3563
@@ -105,6 +122,11 @@ Can potentially include memory bugs that affect control flow:
 * Bug 4: Incorrect if-guard subsuming based on aliasing (if (f1.x > 0) { if (f2.x < 0) { ... } }, second if-clause incorrectly marked as dead)
 * Bug 5: Incorrect phi-node elimination due to assuming it has one valid input (Once again, incorrect aliasing in the guards)
 
+# Examining Git blame
+* StoreNode::Identity
+    * Found nothing interesting, mostly small rewrites
+
+# Examining tests
 
 
 Points of interest:

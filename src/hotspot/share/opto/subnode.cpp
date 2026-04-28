@@ -27,6 +27,7 @@
 #include "gc/shared/c2/barrierSetC2.hpp"
 #include "memory/allocation.inline.hpp"
 #include "opto/addnode.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/callnode.hpp"
 #include "opto/cfgnode.hpp"
 #include "opto/loopnode.hpp"
@@ -62,7 +63,7 @@ Node* SubNode::Identity(PhaseGVN* phase) {
   if (phase->type(in(1))->higher_equal(zero) &&
       in(2)->Opcode() == Opcode() &&
       phase->type(in(2)->in(1))->higher_equal(zero) &&
-      !phase->type(in(2)->in(2))->is_floatingpoint()) {
+      (!phase->type(in(2)->in(2))->is_floatingpoint() || ReintroduceBugs /* JDK-8351515 */)) {
     return in(2)->in(2);
   }
 

@@ -447,6 +447,10 @@
           "Print numbers instead of min/max for constant values."           \
           "Off by default, used for translation validation.")               \
                                                                             \
+  develop(bool, ReintroduceBugs, false,                                     \
+          "Reintroduces bugs given in Wu's Masters' thesis."                \
+          "Off by default, used for translation validation.")               \
+                                                                            \
   develop(intx, PrintIdealGraphLevel, 0,                                    \
           "Level of detail of the ideal graph printout. "                   \
           "System-wide value, -1=printing is disabled, "                    \

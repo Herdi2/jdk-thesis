@@ -696,8 +696,6 @@ Node* PhaseGVN::transform(Node* n) {
 
       Op_OrI, Op_OrL,
 
-      Op_LShiftI, Op_LShiftL,
-
       Op_NegI, Op_NegL, Op_NegF, Op_NegD,
 
       Op_AddI, Op_AddL, Op_AddF, Op_AddD,
@@ -725,7 +723,7 @@ Node* PhaseGVN::transform(Node* n) {
   Node* i = nullptr;
   if (!skip_opt) {
     // Apply the Ideal call in a loop until it no longer applies
-    apply_ideal(k, /*can_reshape=*/false);
+    i = apply_ideal(k, /*can_reshape=*/false);
   }
   NOT_PRODUCT(uint loop_count = 1;)
   while (i != nullptr) {
