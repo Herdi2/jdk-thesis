@@ -109,7 +109,13 @@ StoreNode :: Identity
          prev_dom->in(0) != dom)
     * Bugs: Change above condition to introduce bug, most interesting might be dominator
 * Bug 4: Incorrect Phi-node elimination, due to assuming it only has one valid input, cfgnode.cpp#2196
+    * Git blame has nothing interesting
+    * Loops over region input to find TOP, meaning invalid paths are already marked
+    * Bugs: Incorrectly kill control flow into region node (e.g. CmpINode::Ideal return nullptr on some operations?)
 * Bug 5: Something with diamond phi pattern? (CMove?)
+    * Git blame finds nothing
+    * Actual CMove creation seems to happen in `conditional_move` in `loopopts.cpp`, replaces phi's with CMove
+    * Bugs: Explicit FP bug found at `movenode.cpp@123`
 * Bug 6: Incorrect Rangecheck CMove application (?), ifnode.cpp#1928
 
 
