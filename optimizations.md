@@ -117,23 +117,47 @@ StoreNode :: Identity
     * Actual CMove creation seems to happen in `conditional_move` in `loopopts.cpp`, replaces phi's with CMove
     * Bugs: Explicit FP bug found at `movenode.cpp@123`
 * Bug 6: Incorrect Rangecheck CMove application (?), ifnode.cpp#1928
+    * On ice for now, requires Cast nodes (saw CastII)
 
 
 ## Memory
 ** More bugs not relying on aliasing
-* Bug 1: Back-to-back store folding on different instances (f1.x = 10; f2.x = 11; treated as f1.x = 10; f1.x = 11 => f1.x = 11), memnode.cpp#699
-* Bug 2: Reusing load nodes from different instances (e.g. f1.x + f2.x treated as f1.x + f1.x), memnode.cpp#1959
-* Bug 3: Removing stores from data flow (e.g. f1.x = 20; return f2.x treated as f1.x = 20; return f1.x => return 20), memnode.cpp#3563
+* Bug 1: Back-to-back store folding, `memnode.cpp@3444`
+    * Relevant in StoreNode::Ideal, "Change back-to-back Store(, p, x) -> Store(m, p, y) to Store(m, p, x)."
+    * Git blame mostly around StoreCM node and Vector API
+    * Bugs:
+        * Addresses are compared by node equality, a bug could be comparing address values instead (slicing)
+          `st->in(MemNode::Address)->eqv_uncast(address), memnode.cpp@3476`
+        * Store nodes with more than one out cannot be folded, a bug could be allowing this
+          `st->is_Store() && st->outcnt() == 1`
+* Bug 2: Reusing load nodes if dominated, `LoadNode::Ideal memnode.cpp@1959`
+    * Git blame turned up nothing
+    * `(use != this &&
+          use->Opcode() == Opcode() &&
+          use->in(0) != nullptr &&
+          use->in(0) != in(0) && // unsure about this criteria
+          use->in(Address) == in(Address))`
+    * Bugs:
+        * Addresses are once again compared using node equality, could incorrectly compare address values instead (slicing)
+* Bug 3: `StoreNode::Identity` removes redundant stores
+    * Git blame nothing
+    * Two points of interes
+        * Load into store, i.e. f1 = f1 or similar is removed
+          `(val->is_Load() &&
+              val->in(MemNode::Address)->eqv_uncast(adr) && // Address node equality
+              val->in(MemNode::Memory )->eqv_uncast(mem) && // Memory node equality
+              val->as_Load()->store_Opcode() == Opcode())`
+        * Two consecutive stores of the same value to the same address
+        `(result == this &&
+              mem->is_Store() &&
+              mem->in(MemNode::Address)->eqv_uncast(adr) && // Address node equality
+              mem->in(MemNode::ValueIn)->eqv_uncast(val) && // Value node equality
+              mem->Opcode() == Opcode())`
+    * Bugs:
+        * Again, bugs seem to be most prevalent if address equality fails (slicing)
 Can potentially include memory bugs that affect control flow:
 * Bug 4: Incorrect if-guard subsuming based on aliasing (if (f1.x > 0) { if (f2.x < 0) { ... } }, second if-clause incorrectly marked as dead)
 * Bug 5: Incorrect phi-node elimination due to assuming it has one valid input (Once again, incorrect aliasing in the guards)
-
-# Examining Git blame
-* StoreNode::Identity
-    * Found nothing interesting, mostly small rewrites
-
-# Examining tests
-
 
 Points of interest:
 * PhaseGVN::transform(Node* n) where we delay arithmetic optimizations is supposed to optimize the given node to a
