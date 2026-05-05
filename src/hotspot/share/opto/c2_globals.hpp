@@ -451,6 +451,35 @@
           "Reintroduces bugs given in Wu's Masters' thesis."                \
           "Off by default, used for translation validation.")               \
                                                                             \
+  develop(bool, NoCMove, false,                                             \
+          "Removes Conditional move optimizations."                         \
+          "Off by default, used for translation validation.")               \
+                                                                            \
+  develop(intx, ControlBugs, 0,                                             \
+          "Introduces bugs in the control flow optimizations."              \
+          "0=disabled"                                                      \
+          "10=Inverts short_circuit_map, for incorrect if-guard subsuming." \
+          "20=Incorrect if-node equality, removes same_condition check."    \
+          "Used for translation validation.")                               \
+          range(-1, 50)                                                     \
+                                                                            \
+  develop(bool, DelayMem, false,                                            \
+          "Delays memory optimizations until after parsing."                \
+          "Off by default, used for translation validation.")               \
+                                                                            \
+  develop(bool, TraceMemOpts, false,                                        \
+          "Traces performed memory operations."                             \
+          "Off by default, used for translation validation.")               \
+                                                                            \
+  develop(intx, MemoryBugs, 0,                                              \
+          "Introduces bugs in the control flow optimizations."              \
+          "0=disabled"                                                      \
+          "10=Inverts short_circuit_map, for incorrect if-guard subsuming." \
+          "20=Incorrect if-node equality, removes same_condition check."    \
+          "Used for translation validation.")                               \
+          range(-1, 50)                                                     \
+                                                                            \
+                                                                            \
   develop(intx, PrintIdealGraphLevel, 0,                                    \
           "Level of detail of the ideal graph printout. "                   \
           "System-wide value, -1=printing is disabled, "                    \

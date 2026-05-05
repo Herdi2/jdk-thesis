@@ -720,6 +720,7 @@ Node *PhaseIdealLoop::convert_add_to_muladd(Node* n) {
 // "cheap enough".  We are pretty much limited to CFG diamonds that merge
 // 1 or 2 items with a total of 1 or 2 ops executed speculatively.
 Node *PhaseIdealLoop::conditional_move( Node *region ) {
+  if (NoCMove) return nullptr;
 
   assert(region->is_Region(), "sanity check");
   if (region->req() != 3) return nullptr;

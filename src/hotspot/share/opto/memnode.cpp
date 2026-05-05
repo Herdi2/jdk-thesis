@@ -33,6 +33,7 @@
 #include "oops/objArrayKlass.hpp"
 #include "opto/addnode.hpp"
 #include "opto/arraycopynode.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/cfgnode.hpp"
 #include "opto/compile.hpp"
 #include "opto/connode.hpp"
@@ -1200,7 +1201,13 @@ Node* MemNode::can_see_stored_value(Node* st, PhaseValues* phase) const {
 
     if (st->is_Store()) {
       Node* st_adr = st->in(MemNode::Address);
-      if (st_adr != ld_adr) {
+      // if (MemoryBugs == 40 && phase->is_IterGVN()) {
+      //   tty->print("Examining load: %ld\n", this->debug_idx());
+      //   tty->print("Comparing addresses: %ld %ld\n", st_adr->debug_idx(), ld_adr->debug_idx());
+      //   tty->print("store opcodes: %d %d\n", store_Opcode(), st->Opcode());
+      // }
+
+      if (st_adr != ld_adr && !(MemoryBugs == 40)) {
         // Try harder before giving up. Unify base pointers with casts (e.g., raw/non-raw pointers).
         intptr_t st_off = 0;
         Node* st_base = AddPNode::Ideal_base_and_offset(st_adr, phase, st_off);
@@ -1321,8 +1328,11 @@ bool LoadNode::is_instance_field_load_with_local_phi(Node* ctrl) {
 Node* LoadNode::Identity(PhaseGVN* phase) {
   // If the previous store-maker is the right kind of Store, and the store is
   // to the same address, then we are equal to the value stored.
+  // if (TraceMemOpts)
+  //   tty->print("LoadNode::Identity, iterGVN=%s\n", phase->is_IterGVN() ? "YES" : "NO");
   Node* mem = in(Memory);
   Node* value = can_see_stored_value(mem, phase);
+  if (DelayMem && !(MemoryBugs == 40 && phase->is_IterGVN())) return this;
   if( value ) {
     // byte, short & char stores truncate naturally.
     // A load has to load the truncated value which requires
@@ -1963,7 +1973,7 @@ Node *LoadNode::Ideal(PhaseGVN *phase, bool can_reshape) {
           use->Opcode() == Opcode() &&
           use->in(0) != nullptr &&
           use->in(0) != in(0) &&
-          use->in(Address) == in(Address)) {
+          (DelayMem || use->in(Address) == in(Address)) ) {
         Node* ctl = in(0);
         for (int i = 0; i < 10 && ctl != nullptr; i++) {
           ctl = IfNode::up_one_dom(ctl);
@@ -2062,7 +2072,7 @@ const Type* LoadNode::Value(PhaseGVN* phase) const {
 
   // If load can see a previous constant store, use that.
   Node* value = can_see_stored_value(mem, phase);
-  if (value != nullptr && value->is_Con()) {
+  if (value != nullptr && value->is_Con() && !DelayMem) {
     assert(value->bottom_type()->higher_equal(_type), "sanity");
     return value->bottom_type();
   }
@@ -3473,8 +3483,11 @@ Node *StoreNode::Ideal(PhaseGVN *phase, bool can_reshape) {
              (is_mismatched_access() || st->as_Store()->is_mismatched_access()),
              "no mismatched stores, except on raw memory: %s %s", NodeClassNames[Opcode()], NodeClassNames[st->Opcode()]);
 
-      if (st->in(MemNode::Address)->eqv_uncast(address) &&
+      // Back2Back bug: Incorrect memory address equivalence
+      if ( (MemoryBugs == 10 || st->in(MemNode::Address)->eqv_uncast(address)) &&
           st->as_Store()->memory_size() <= this->memory_size()) {
+        if (TraceMemOpts)
+          tty->print("Back2Back store to same address folded.\n");
         Node* use = st->raw_out(0);
         if (phase->is_IterGVN()) {
           phase->is_IterGVN()->rehash_node_delayed(use);
@@ -3568,10 +3581,13 @@ Node* StoreNode::Identity(PhaseGVN* phase) {
   Node* result = this;
 
   // Load then Store?  Then the Store is useless
-  if (val->is_Load() &&
-      val->in(MemNode::Address)->eqv_uncast(adr) &&
-      val->in(MemNode::Memory )->eqv_uncast(mem) &&
+  if ((!DelayMem || phase->is_IterGVN()) &&
+      val->is_Load() &&
+      (MemoryBugs == 20 || val->in(MemNode::Address)->eqv_uncast(adr)) &&
+      (MemoryBugs == 20 || val->in(MemNode::Memory)->eqv_uncast(mem)) &&
       val->as_Load()->store_Opcode() == Opcode()) {
+      if (TraceMemOpts)
+        tty->print("Removed redundant load into store of same address\n");
     if (!is_StoreVector()) {
       result = mem;
     } else if (Opcode() == Op_StoreVector && val->Opcode() == Op_LoadVector &&
@@ -3584,10 +3600,13 @@ Node* StoreNode::Identity(PhaseGVN* phase) {
   // Two stores in a row of the same value?
   if (result == this &&
       mem->is_Store() &&
-      mem->in(MemNode::Address)->eqv_uncast(adr) &&
-      mem->in(MemNode::ValueIn)->eqv_uncast(val) &&
-      mem->Opcode() == Opcode()) {
+      (MemoryBugs == 30 || mem->in(MemNode::Address)->eqv_uncast(adr)) &&
+      (MemoryBugs == 30 || mem->in(MemNode::ValueIn)->eqv_uncast(val)) &&
+      mem->Opcode() == Opcode() &&
+      (!DelayMem || phase->is_IterGVN())) {
     if (!is_StoreVector()) {
+      if (TraceMemOpts)
+        tty->print("Remove duplicate store to same address/same value\n");
       result = mem;
     } else {
       const StoreVectorNode* store_vector = as_StoreVector();

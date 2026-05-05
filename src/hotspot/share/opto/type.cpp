@@ -1696,7 +1696,6 @@ void TypeD::dump2( Dict &d, uint depth, outputStream *st ) const {
       for(int i = 7; i >= 0; i--) {
         st->print("%d", (bits[(sizeof _d) - n]>>i) & 1);
       }
-      if (n == 0) break;
     }
   } else {
     st->print("%f", _d);

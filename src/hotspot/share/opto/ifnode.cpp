@@ -26,6 +26,7 @@
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "opto/addnode.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/castnode.hpp"
 #include "opto/cfgnode.hpp"
 #include "opto/connode.hpp"
@@ -1521,6 +1522,10 @@ Node* IfNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   }
 
   Node* prev_dom = search_identical(dist, igvn);
+  #ifndef PRODUCT
+  if (TraceIterativeGVN && prev_dom != nullptr)
+      tty->print("\tFound previous dominator");
+  #endif
 
   if (prev_dom != nullptr) {
     // Dominating CountedLoopEnd (left over from some now dead loop) will become the new loop exit. Outer strip mined
@@ -1540,11 +1545,11 @@ Node* IfNode::Ideal(PhaseGVN *phase, bool can_reshape) {
 
 //------------------------------dominated_by-----------------------------------
 Node* IfNode::dominated_by(Node* prev_dom, PhaseIterGVN* igvn, bool prev_dom_not_imply_this) {
-#ifndef PRODUCT
+  #ifndef PRODUCT
   if (TraceIterativeGVN) {
     tty->print("   Removing IfNode: "); this->dump();
   }
-#endif
+  #endif
 
   igvn->hash_delete(this);      // Remove self to prevent spurious V-N
   Node *idom = in(0);
@@ -1610,8 +1615,8 @@ Node* IfNode::search_identical(int dist, PhaseIterGVN* igvn) {
   int op = Opcode();
   // Search up the dominator tree for an If with an identical test
   while (dom->Opcode() != op ||  // Not same opcode?
-         !same_condition(dom, igvn) ||  // Not same input 1?
-         prev_dom->in(0) != dom) {  // One path of test does not dominate?
+         (ControlBugs == 20 ? false : !same_condition(dom, igvn)) ||  // Not same input 1?
+         (ControlBugs == 21 ? false : prev_dom->in(0) != dom)) {  // One path of test does not dominate?
     if (dist < 0) return nullptr;
 
     dist--;
@@ -1730,14 +1735,22 @@ Node* IfNode::simple_subsuming(PhaseIterGVN* igvn) {
     return nullptr;
   }
   int br = s_short_circuit_map[trel][2*drel+bout];
+
+  // Invert taken branch to introduce bugs
+  // for incorrect if-guard subsuming.
+  if (ControlBugs == 10) {
+    if (br == tb) br = fb;
+    else if (br == fb) br = tb;
+  }
+
   if (br == na) {
     return nullptr;
   }
-#ifndef PRODUCT
+  #ifndef PRODUCT
   if (TraceIterativeGVN) {
     tty->print("   Subsumed IfNode: "); dump();
   }
-#endif
+  #endif
   // Replace condition with constant True(1)/False(0).
   bool is_always_true = br == tb;
   set_req(1, igvn->intcon(is_always_true ? 1 : 0));
