@@ -28,6 +28,7 @@
 #include "memory/resourceArea.hpp"
 #include "oops/objArrayKlass.hpp"
 #include "opto/addnode.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/castnode.hpp"
 #include "opto/cfgnode.hpp"
 #include "opto/connode.hpp"
@@ -555,6 +556,9 @@ Node *RegionNode::Ideal(PhaseGVN *phase, bool can_reshape) {
     }
   }
 
+  if (TraceIterativeGVN)
+    tty->print("Idealizing region %lu\n", this->debug_idx());
+
   // Remove TOP or null input paths. If only 1 input path remains, this Region
   // degrades to a copy.
   bool add_to_worklist = true;
@@ -565,9 +569,11 @@ Node *RegionNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   int del_it = 0;               // The last input path we delete
   bool found_top = false; // irreducible loops need to check reachability if we find TOP
   // For all inputs...
-  for( uint i=1; i<req(); ++i ){// For all paths in
+  for( uint i=1; i<req(); ++i ) {// For all paths in
     Node *n = in(i);            // Get the input
     if( n != nullptr ) {
+      if (TraceIterativeGVN)
+        tty->print("Region %ld: input %d %ld\n", this->debug_idx(), i, n->debug_idx() );
       // Remove useless control copy inputs
       if( n->is_Region() && n->as_Region()->is_copy() ) {
         set_req(i, n->nonnull_req());
@@ -2204,6 +2210,8 @@ Node *PhiNode::Ideal(PhaseGVN *phase, bool can_reshape) {
         if (can_reshape && igvn != nullptr) {
           igvn->_worklist.push(r);
         }
+        if (TraceIterativeGVN)
+          tty->print("Removing input %u from %ld\n", j, this->debug_idx());
         // Nuke it down
         set_req_X(j, top, phase);
         progress = this;        // Record progress

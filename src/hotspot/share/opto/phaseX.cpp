@@ -135,6 +135,13 @@ Node *NodeHash::hash_find_insert( Node *n ) {
 
   int op = n->Opcode();
   uint req = n->req();
+
+  if (TraceIterativeGVN && op == Op_LoadI) {
+    tty->print("Comparing load node %ld to %ld\n", n->debug_idx(), k->debug_idx() );
+    tty->print("Equal? %s\n", n->cmp(*k) ? "YES" : "NO");
+    tty->print("Equal? %s\n", n->cmp(*k) ? "YES" : "NO");
+  }
+
   while( 1 ) {                  // While probing hash table
     if( k->req() == req &&      // Same count of inputs
         k->Opcode() == op ) {   // Same Opcode
@@ -142,6 +149,8 @@ Node *NodeHash::hash_find_insert( Node *n ) {
         if( n->in(i)!=k->in(i)) // Different inputs?
           goto collision;       // "goto" is a speed hack...
       if( n->cmp(*k) ) {        // Check for any special bits
+        if (TraceIterativeGVN)
+          tty->print("%ld is equal to %ld\n", n->debug_idx(), k->debug_idx());
         NOT_PRODUCT( _lookup_hits++ );
         return k;               // Hit!
       }

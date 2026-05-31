@@ -27,6 +27,7 @@
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "opto/addnode.hpp"
+#include "opto/c2_globals.hpp"
 #include "opto/callnode.hpp"
 #include "opto/castnode.hpp"
 #include "opto/connode.hpp"
@@ -1636,6 +1637,8 @@ bool PhaseIdealLoop::try_merge_identical_ifs(Node* n) {
         dominated_by(dom_proj_false, new_false_region->in(i)->in(0)->as_If());
       }
     }
+    if (TraceIterativeGVN)
+      tty->print("Trying to merge identical ifs");
     return true;
   }
   return false;

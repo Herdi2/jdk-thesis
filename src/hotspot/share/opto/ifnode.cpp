@@ -1520,8 +1520,10 @@ Node* IfNode::Ideal(PhaseGVN *phase, bool can_reshape) {
       dist = 64;              // Limit for null-pointer scans
     }
   }
+  Node* prev_dom = nullptr;
+  if (!DelayMem || phase->is_IterGVN())
+    prev_dom = search_identical(dist, igvn);
 
-  Node* prev_dom = search_identical(dist, igvn);
   #ifndef PRODUCT
   if (TraceIterativeGVN && prev_dom != nullptr)
       tty->print("\tFound previous dominator");
@@ -1610,6 +1612,8 @@ Node* IfNode::dominated_by(Node* prev_dom, PhaseIterGVN* igvn, bool prev_dom_not
 
 Node* IfNode::search_identical(int dist, PhaseIterGVN* igvn) {
   // Setup to scan up the CFG looking for a dominating test
+  if (TraceIterativeGVN)
+    tty->print("Search identical of: %ld\n", this->debug_idx());
   Node* dom = in(0);
   Node* prev_dom = this;
   int op = Opcode();
@@ -1623,6 +1627,8 @@ Node* IfNode::search_identical(int dist, PhaseIterGVN* igvn) {
     prev_dom = dom;
     dom = up_one_dom(dom);
     if (!dom) return nullptr;
+    if (TraceIterativeGVN)
+      tty->print("dom iter: %ld\n", dom->debug_idx());
   }
 
   // Check that we did not follow a loop back to ourselves
@@ -1698,7 +1704,7 @@ Node* IfNode::simple_subsuming(PhaseIterGVN* igvn) {
   /*rel: eq+T eq+F ne+T ne+F lt+T lt+F le+T le+F gt+T gt+F ge+T ge+F*/
   /*eq*/{ tb,  fb,  fb,  tb,  fb,  na,  na,  fb,  fb,  na,  na,  fb },
   /*ne*/{ fb,  tb,  tb,  fb,  tb,  na,  na,  tb,  tb,  na,  na,  tb },
-  /*lt*/{ fb,  na,  na,  fb,  tb,  fb,  na,  fb,  fb,  na,  fb,  tb },
+  /*lt*/{ fb,  na,  na,  fb,  tb,  fb,  (ControlBugs == 11 ? tb : na),  fb,  fb,  na,  fb,  tb },
   /*le*/{ tb,  na,  na,  tb,  tb,  na,  tb,  fb,  fb,  tb,  na,  tb },
   /*gt*/{ fb,  na,  na,  fb,  fb,  na,  fb,  tb,  tb,  fb,  na,  fb },
   /*ge*/{ tb,  na,  na,  tb,  fb,  tb,  na,  tb,  tb,  na,  tb,  fb }};
@@ -1897,7 +1903,7 @@ static IfNode* idealize_test(PhaseGVN* phase, IfNode* iff) {
   BoolNode *b = iff->in(1)->as_Bool();
   BoolTest bt = b->_test;
   // Test already in good order?
-  if( bt.is_canonical() )
+  if( bt.is_canonical() || ControlBugs == 30)
     return nullptr;
 
   // Flip test to be canonical.  Requires flipping the IfFalse/IfTrue and

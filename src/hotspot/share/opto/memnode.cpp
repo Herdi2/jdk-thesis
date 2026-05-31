@@ -94,6 +94,7 @@ void MemNode::dump_spec(outputStream *st) const {
     _adr_type = in(Address)->bottom_type()->isa_ptr();
 #endif
   dump_adr_type(_adr_type, st);
+  st->print("hash=%u", this->hash());
 
   Compile* C = Compile::current();
   if (C->alias_type(_adr_type)->is_volatile()) {
@@ -1973,11 +1974,13 @@ Node *LoadNode::Ideal(PhaseGVN *phase, bool can_reshape) {
           use->Opcode() == Opcode() &&
           use->in(0) != nullptr &&
           use->in(0) != in(0) &&
-          (DelayMem || use->in(Address) == in(Address)) ) {
+          use->in(Address) == in(Address) ) {
         Node* ctl = in(0);
         for (int i = 0; i < 10 && ctl != nullptr; i++) {
           ctl = IfNode::up_one_dom(ctl);
           if (ctl == use->in(0)) {
+            if (TraceIterativeGVN)
+              tty->print("%ld replaced by %ld\n", this->debug_idx(), use->debug_idx());
             set_req(0, use->in(0));
             return this;
           }
@@ -3470,6 +3473,8 @@ Node *StoreNode::Ideal(PhaseGVN *phase, bool can_reshape) {
     // each of 'mem's uses (thus making the exactly-1-user-rule hold
     // true).
     while (st->is_Store() && st->outcnt() == 1) {
+      if (MemoryBugs == 10)
+        tty->print("hello\n");
       // Looking at a dead closed cycle of memory?
       assert(st != st->in(MemNode::Memory), "dead loop in StoreNode::Ideal");
       assert(Opcode() == st->Opcode() ||
@@ -3482,7 +3487,12 @@ Node *StoreNode::Ideal(PhaseGVN *phase, bool can_reshape) {
              (Opcode() == Op_StoreI && st->Opcode() == Op_StoreL) || // initialization by arraycopy
              (is_mismatched_access() || st->as_Store()->is_mismatched_access()),
              "no mismatched stores, except on raw memory: %s %s", NodeClassNames[Opcode()], NodeClassNames[st->Opcode()]);
-
+      if (MemoryBugs == 10)
+        tty->print("Comparing store %ld with %ld, addresses %ld and %ld\n",
+              st->debug_idx(),
+              st->in(MemNode::Memory) == nullptr ? -1 : st->in(MemNode::Memory)->debug_idx(),
+              address->debug_idx(),
+              st->in(MemNode::Memory) == nullptr ? -1 : st->in(MemNode::Address)->debug_idx());
       // Back2Back bug: Incorrect memory address equivalence
       if ( (MemoryBugs == 10 || st->in(MemNode::Address)->eqv_uncast(address)) &&
           st->as_Store()->memory_size() <= this->memory_size()) {
@@ -3584,7 +3594,7 @@ Node* StoreNode::Identity(PhaseGVN* phase) {
   if ((!DelayMem || phase->is_IterGVN()) &&
       val->is_Load() &&
       (MemoryBugs == 20 || val->in(MemNode::Address)->eqv_uncast(adr)) &&
-      (MemoryBugs == 20 || val->in(MemNode::Memory)->eqv_uncast(mem)) &&
+      (val->in(MemNode::Memory)->eqv_uncast(mem)) &&
       val->as_Load()->store_Opcode() == Opcode()) {
       if (TraceMemOpts)
         tty->print("Removed redundant load into store of same address\n");
