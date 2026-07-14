@@ -463,6 +463,12 @@
           "Used for translation validation.")                               \
           range(-1, 50)                                                     \
                                                                             \
+  develop(intx, DataBugs, 0,                                                \
+          "Introduces bugs in the data flow optimizations."                 \
+          "Values 1-5 introduce Wu's bugs in order."                        \
+          "Used for translation validation.")                               \
+          range(-1, 50)                                                     \
+                                                                            \
   develop(bool, DelayMem, false,                                            \
           "Delays memory optimizations until after parsing."                \
           "Off by default, used for translation validation.")               \

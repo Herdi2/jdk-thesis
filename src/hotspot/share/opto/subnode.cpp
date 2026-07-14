@@ -63,7 +63,7 @@ Node* SubNode::Identity(PhaseGVN* phase) {
   if (phase->type(in(1))->higher_equal(zero) &&
       in(2)->Opcode() == Opcode() &&
       phase->type(in(2)->in(1))->higher_equal(zero) &&
-      (!phase->type(in(2)->in(2))->is_floatingpoint() || ReintroduceBugs /* JDK-8351515 */)) {
+      (!phase->type(in(2)->in(2))->is_floatingpoint() || (ReintroduceBugs || DataBugs == 5) /* JDK-8351515 */)) {
     return in(2)->in(2);
   }
 

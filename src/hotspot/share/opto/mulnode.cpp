@@ -70,7 +70,7 @@ Node *MulNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   bool real_mul = (op == Op_MulI) || (op == Op_MulL) ||
                   (op == Op_MulF) || (op == Op_MulD) ||
                   (op == Op_MulHF) ||
-                  (op == Op_AndI && ReintroduceBugs /* JDK-4326979 */);
+                  (op == Op_AndI && (ReintroduceBugs || DataBugs == 3) /* JDK-8274060 */);
 
   // Convert "(-a)*(-b)" into "a*b".
   if (real_mul && in1->is_Sub() && in2->is_Sub()) {
@@ -124,8 +124,8 @@ Node *MulNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   // If the right input is a constant, and the left input is a product of a
   // constant, flatten the expression tree.
   if( t2->singleton() &&        // Right input is a constant?
-      ( op != Op_MulF || ReintroduceBugs /* JDK-4326979 */) &&          // Float & double cannot reassociate
-      ( op != Op_MulD || ReintroduceBugs /* JDK-4326979 */) &&
+      ( op != Op_MulF || ReintroduceBugs || DataBugs == 2 /* JDK-4326979 */) && // Float & double cannot reassociate
+      ( op != Op_MulD || ReintroduceBugs || DataBugs == 2 /* JDK-4326979 */) &&
       op != Op_MulHF) {
     if( t2 == Type::TOP ) return nullptr;
     Node *mul1 = in(1);
@@ -196,8 +196,8 @@ const Type* MulNode::Value(PhaseGVN* phase) const {
   // Not valid for floats or doubles since +0.0 * -0.0 --> +0.0
   int op = Opcode();
   if( op == Op_MulI || op == Op_AndI || op == Op_MulL || op == Op_AndL
-        || (op == Op_MulF && ReintroduceBugs) /* JDK-4232745 */
-        || (op == Op_MulD && ReintroduceBugs)) {
+        || (op == Op_MulF && (ReintroduceBugs || DataBugs == 1 )) /* JDK-4232745 */
+        || (op == Op_MulD && (ReintroduceBugs || DataBugs == 1 ))) {
     const Type *zero = add_id();        // The multiplicative zero
     if( t1->higher_equal( zero ) ) return zero;
     if( t2->higher_equal( zero ) ) return zero;
@@ -996,7 +996,7 @@ Node* LShiftNode::IdealIL(PhaseGVN* phase, bool can_reshape, BasicType bt) {
     // and 'i2b' patterns which typically fold into 'StoreC/StoreB'.
     if (bt != T_INT || con < 16) {
       // Left input is an add of the same number?
-      if ((con != (bits_per_java_integer(bt) - 1) || ReintroduceBugs) /* JDK-8288564 */
+      if ((con != (bits_per_java_integer(bt) - 1) || (ReintroduceBugs || DataBugs == 4)) /* JDK-8288564 */
           && add1->in(1) == add1->in(2)) {
         // Convert "(x + x) << c0" into "x << (c0 + 1)"
         // In general, this optimization cannot be applied for c0 == 31 (for LShiftI) since
