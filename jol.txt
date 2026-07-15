@@ -1,0 +1,30 @@
+# WARNING: Unable to get Instrumentation. Dynamic Attach failed. You may add this JAR as -javaagent manually, or supply -Djdk.attach.allowAttachSelf
+JVMMem object internals:
+OFF  SZ       TYPE DESCRIPTION               VALUE
+  0   8            (object header: mark)     0x0000000000000001 (non-biasable; age: 0)
+  8   4            (object header: class)    0x01000800
+ 12   4        int JVMMem.i1                 0
+ 16   8       long JVMMem.l2                 0
+ 24   8   JVMMem.A JVMMem.a1                 (object)
+ 32   8   JVMMem.A JVMMem.a2                 (object)
+Instance size: 40 bytes
+Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
+
+JVMMem$A object internals:
+OFF  SZ     TYPE DESCRIPTION               VALUE
+  0   8          (object header: mark)     0x0000000000000001 (non-biasable; age: 0)
+  8   4          (object header: class)    0x01000a10
+ 12   4    float A.f1                      0.0
+ 16   8   double A.d2                      0.0
+Instance size: 24 bytes
+Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
+
+JVMMem$A object internals:
+OFF  SZ     TYPE DESCRIPTION               VALUE
+  0   8          (object header: mark)     0x0000000000000001 (non-biasable; age: 0)
+  8   4          (object header: class)    0x01000a10
+ 12   4    float A.f1                      0.0
+ 16   8   double A.d2                      0.0
+Instance size: 24 bytes
+Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
+
